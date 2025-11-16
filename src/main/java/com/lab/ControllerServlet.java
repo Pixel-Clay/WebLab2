@@ -1,6 +1,9 @@
 package com.lab;
 
+import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -29,9 +32,6 @@ public class ControllerServlet extends HttpServlet {
             case "check":
                 handleAreaCheck(request, response, session);
                 break;
-            case "history":
-                handleHistory(request, response, session);
-                break;
             case "reset":
                 handleReset(request, response, session);
                 break;
@@ -56,15 +56,38 @@ public class ControllerServlet extends HttpServlet {
     
     private void handleAreaCheck(HttpServletRequest request, HttpServletResponse response, HttpSession session)
             throws ServletException, IOException {
-        request.getRequestDispatcher("/areaCheck").forward(request, response);
-    }
-    
-    private void handleHistory(HttpServletRequest request, HttpServletResponse response, HttpSession session)
-            throws IOException {
-        response.setContentType("application/json");
-        response.setCharacterEncoding("UTF-8");
+        // Extract and validate parameters
+        String rParam = request.getParameter("r");
+        String xParam = request.getParameter("x");
+        String yParam = request.getParameter("y");
 
-        response.getWriter().write("[]");
+        if (rParam == null || xParam == null || yParam == null) {
+            sendErrorPage(request, response);
+            return;
+        }
+
+        double r, x, y;
+        try {
+            r = Double.parseDouble(rParam);
+            x = Double.parseDouble(xParam);
+            y = Double.parseDouble(yParam);
+        } catch (NumberFormatException e) {
+            sendErrorPage(request, response);
+            return;
+        }
+
+        // Validate parameter ranges
+        if (Double.isNaN(r) || Double.isNaN(x) || Double.isNaN(y) ||
+                Double.isInfinite(r) || Double.isInfinite(x) || Double.isInfinite(y)) {
+            sendErrorPage(request, response);
+            return;
+        }
+
+        request.setAttribute("r", r);
+        request.setAttribute("x", x);
+        request.setAttribute("y", y);
+
+        request.getRequestDispatcher("/areaCheck").forward(request, response);
     }
     
     private void handleReset(HttpServletRequest request, HttpServletResponse response, HttpSession session)
@@ -74,6 +97,11 @@ public class ControllerServlet extends HttpServlet {
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
         response.getWriter().write("{\"success\":true}");
+    }
+
+    void sendErrorPage(ServletRequest request, ServletResponse response) throws ServletException, IOException {
+        RequestDispatcher dispatcher = getServletContext().getRequestDispatcher("/products/index.jsp");
+        dispatcher.forward(request, response);
     }
 }
 
